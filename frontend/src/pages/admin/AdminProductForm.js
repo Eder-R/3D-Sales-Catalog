@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate, Link } from "react-router-dom";
-import { ArrowLeft, UploadSimple, X, Plus } from "@phosphor-icons/react";
+import { ArrowLeft, UploadSimple, X, Plus, Receipt } from "@phosphor-icons/react";
 import { AdminLayout } from "@/pages/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,13 +12,16 @@ import {
 } from "@/components/ui/select";
 import { ProductImage } from "@/components/ProductImage";
 import { api, fileUrl } from "@/lib/api";
-import { parseBRLToCents } from "@/lib/format";
+import { parseBRLToCents, formatBRL, formatPrintTime } from "@/lib/format";
 import { toast } from "sonner";
+
+const AUTO = "__auto__";
 
 const empty = {
   code: "", name: "", description: "", category: "",
   weight_grams: "", print_time_minutes: "", material: "PLA", dimensions: "",
   images: [], price: "", colors: [], status: "draft", available: true,
+  pricing_ref: AUTO, cost_breakdown: null, price_source: "admin", specs_source: "admin",
 };
 
 export default function AdminProductForm() {
@@ -30,6 +33,14 @@ export default function AdminProductForm() {
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [colorInput, setColorInput] = useState("");
+  const [projects, setProjects] = useState([]);
+  const [pricingEnabled, setPricingEnabled] = useState(false);
+
+  useEffect(() => {
+    api.get("/admin/pricing/projects")
+      .then(({ data }) => { setPricingEnabled(data.enabled); setProjects(data.projects || []); })
+      .catch(() => {});
+  }, []);
 
   useEffect(() => {
     if (!isEdit) return;
@@ -42,6 +53,7 @@ export default function AdminProductForm() {
         print_time_minutes: p.print_time_minutes ?? "",
         price: p.price_cents != null ? (p.price_cents / 100).toFixed(2).replace(".", ",") : "",
         colors: p.colors || [], images: p.images || [],
+        pricing_ref: p.pricing_ref || AUTO,
       });
       setLoading(false);
     });
@@ -87,6 +99,7 @@ export default function AdminProductForm() {
       weight_grams: form.weight_grams === "" ? null : Number(form.weight_grams),
       print_time_minutes: form.print_time_minutes === "" ? null : Number(form.print_time_minutes),
       price_cents: parseBRLToCents(form.price),
+      pricing_ref: form.pricing_ref && form.pricing_ref !== AUTO ? form.pricing_ref : null,
     };
     try {
       if (isEdit) await api.put(`/admin/products/${id}`, payload);
@@ -142,6 +155,51 @@ export default function AdminProductForm() {
             <Label htmlFor="description">Descrição</Label>
             <Textarea id="description" rows={4} value={form.description} onChange={set("description")} data-testid="field-description" className="bg-background border-border rounded-md resize-none" />
           </div>
+
+          {pricingEnabled && (
+            <div className="space-y-2">
+              <Label>Vínculo com o sistema de precificação</Label>
+              <Select value={form.pricing_ref || AUTO} onValueChange={(v) => setForm((f) => ({ ...f, pricing_ref: v }))}>
+                <SelectTrigger className={fieldCls} data-testid="field-pricing-ref"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={AUTO}>Automático (casar pelo nome)</SelectItem>
+                  {projects.map((p) => (
+                    <SelectItem key={p.key} value={p.key}>{p.name} — {formatBRL(p.price_cents)}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">
+                Vincule este produto a um projeto do seu sistema para herdar preço, peso e tempo — útil quando o nome difere.
+              </p>
+            </div>
+          )}
+
+          {isEdit && form.cost_breakdown && (
+            <div className="border border-border/60 bg-card p-5" data-testid="cost-breakdown">
+              <div className="flex items-center gap-2 mb-4">
+                <Receipt size={18} weight="duotone" className="text-discreet" />
+                <h3 className="font-heading font-bold text-sm">Detalhe de custo (sistema)</h3>
+              </div>
+              <div className="space-y-2 text-sm">
+                {form.cost_breakdown.materials?.length > 0 && (
+                  <div className="pb-2 mb-2 border-b border-border/60">
+                    {form.cost_breakdown.materials.map((m, i) => (
+                      <div key={i} className="flex justify-between text-muted-foreground">
+                        <span>Material · {m.name} ({m.grams} g)</span>
+                        <span className="font-mono">{formatBRL(m.cost_cents)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="flex justify-between"><span className="text-muted-foreground">Custo de material</span><span className="font-mono">{formatBRL(form.cost_breakdown.material_cents)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Mão de obra ({form.cost_breakdown.labor_minutes} min)</span><span className="font-mono">{formatBRL(form.cost_breakdown.labor_cents)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Impressora ({formatPrintTime(form.cost_breakdown.print_minutes)})</span><span className="font-mono">{formatBRL(form.cost_breakdown.printer_cents)}</span></div>
+                <div className="flex justify-between border-t border-border/60 pt-2 font-medium"><span>Custo total</span><span className="font-mono">{formatBRL(form.cost_breakdown.total_cost_cents)}</span></div>
+                <div className="flex justify-between"><span className="text-muted-foreground">Margem configurada</span><span className="font-mono">{Math.round((form.cost_breakdown.margin_pct || 0) * 100)}%</span></div>
+                <div className="flex justify-between border-t border-border/60 pt-2 text-primary font-bold"><span>Preço de venda (sistema)</span><span className="font-mono">{formatBRL(form.cost_breakdown.sale_price_cents)}</span></div>
+              </div>
+            </div>
+          )}
 
           <div className="grid sm:grid-cols-2 gap-6">
             <div className="space-y-2">

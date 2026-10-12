@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Plus, PencilSimple, Trash, Eye, Archive, FileDashed, Package } from "@phosphor-icons/react";
+import { Plus, PencilSimple, Trash, Eye, Archive, FileDashed, Package, DownloadSimple } from "@phosphor-icons/react";
 import { AdminLayout } from "@/pages/admin/AdminLayout";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -22,9 +22,38 @@ const statusStyle = {
 export default function AdminProducts() {
   const [products, setProducts] = useState(null);
   const [toDelete, setToDelete] = useState(null);
+  const [importOpen, setImportOpen] = useState(false);
+  const [importInfo, setImportInfo] = useState(null);
+  const [importing, setImporting] = useState(false);
 
   const load = () => api.get("/admin/products").then(({ data }) => setProducts(data));
   useEffect(() => { load(); }, []);
+
+  const openImport = async () => {
+    setImportInfo(null);
+    setImportOpen(true);
+    try {
+      const { data } = await api.get("/admin/pricing/projects");
+      const pending = (data.projects || []).filter((p) => !p.in_catalog);
+      setImportInfo({ enabled: data.enabled, total: (data.projects || []).length, pending: pending.length, projects: pending });
+    } catch {
+      setImportInfo({ enabled: false, total: 0, pending: 0, projects: [] });
+    }
+  };
+
+  const doImport = async () => {
+    setImporting(true);
+    try {
+      const { data } = await api.post("/admin/pricing/import");
+      toast.success(`${data.created} projeto(s) importado(s) como rascunho.`);
+      setImportOpen(false);
+      load();
+    } catch (err) {
+      toast.error(err.response?.data?.detail || "Falha ao importar.");
+    } finally {
+      setImporting(false);
+    }
+  };
 
   const changeStatus = async (p, status) => {
     await api.put(`/admin/products/${p.id}`, { status });
@@ -42,14 +71,19 @@ export default function AdminProducts() {
   return (
     <AdminLayout>
       <div className="px-6 lg:px-8 py-10 max-w-7xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-8">
           <div>
             <h1 className="font-heading font-black text-3xl tracking-tight">Produtos</h1>
             <p className="text-sm text-muted-foreground mt-1">Cadastre, edite, publique e arquive projetos.</p>
           </div>
-          <Button asChild className="rounded-md" data-testid="new-product-button">
-            <Link to="/admin/produtos/novo"><Plus size={18} className="mr-1.5" /> Novo produto</Link>
-          </Button>
+          <div className="flex gap-3">
+            <Button variant="outline" onClick={openImport} className="rounded-md border-border" data-testid="import-projects-button">
+              <DownloadSimple size={18} className="mr-1.5" /> Importar do sistema
+            </Button>
+            <Button asChild className="rounded-md" data-testid="new-product-button">
+              <Link to="/admin/produtos/novo"><Plus size={18} className="mr-1.5" /> Novo produto</Link>
+            </Button>
+          </div>
         </div>
 
         {products === null ? (
@@ -113,6 +147,44 @@ export default function AdminProducts() {
           </div>
         )}
       </div>
+
+      <AlertDialog open={importOpen} onOpenChange={(o) => !o && setImportOpen(false)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Importar projetos do sistema</AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-2">
+                {importInfo === null ? (
+                  <span>Carregando projetos…</span>
+                ) : !importInfo.enabled ? (
+                  <span>A integração de precificação não está ativa.</span>
+                ) : importInfo.pending === 0 ? (
+                  <span>Todos os {importInfo.total} projetos do sistema já estão no catálogo.</span>
+                ) : (
+                  <>
+                    <span className="block">
+                      {importInfo.pending} de {importInfo.total} projeto(s) ainda não estão no catálogo. Eles serão criados como <strong>rascunho</strong>, já com preço, peso e tempo do sistema.
+                    </span>
+                    <ul className="text-xs font-mono text-muted-foreground max-h-40 overflow-auto border border-border/60 p-2">
+                      {importInfo.projects.map((p) => (
+                        <li key={p.key}>• {p.name} — {formatBRL(p.price_cents)}</li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="rounded-md">Fechar</AlertDialogCancel>
+            {importInfo?.enabled && importInfo?.pending > 0 && (
+              <AlertDialogAction onClick={doImport} disabled={importing} data-testid="confirm-import" className="rounded-md">
+                {importing ? "Importando..." : `Importar ${importInfo.pending} projeto(s)`}
+              </AlertDialogAction>
+            )}
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       <AlertDialog open={!!toDelete} onOpenChange={(o) => !o && setToDelete(null)}>
         <AlertDialogContent>

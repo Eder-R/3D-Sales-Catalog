@@ -34,6 +34,7 @@ class ProductBase(BaseModel):
     colors: List[str] = Field(default_factory=list)
     status: ProductStatus = "draft"
     available: bool = True
+    pricing_ref: Optional[str] = Field(default=None, max_length=200)
 
 
 class ProductCreate(ProductBase):
@@ -54,6 +55,7 @@ class ProductUpdate(BaseModel):
     colors: Optional[List[str]] = None
     status: Optional[ProductStatus] = None
     available: Optional[bool] = None
+    pricing_ref: Optional[str] = Field(default=None, max_length=200)
 
 
 class Product(ProductBase):

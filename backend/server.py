@@ -1,4 +1,5 @@
 import os
+import re
 import uuid
 import logging
 from pathlib import Path
@@ -28,7 +29,7 @@ from auth import (
     ensure_admin_seed,
 )
 from storage import init_storage, put_object, get_object, APP_NAME, MIME_TYPES
-from pricing import get_pricing_source
+from pricing import get_pricing_source, LegacyPricingSource, _norm
 
 mongo_url = os.environ["MONGO_URL"]
 client = AsyncIOMotorClient(mongo_url)
@@ -66,6 +67,7 @@ def _admin_product(doc: dict) -> dict:
     doc["effective_weight_grams"] = r["weight_grams"]
     doc["effective_print_time_minutes"] = r["print_time_minutes"]
     doc["specs_source"] = r["specs_source"]
+    doc["cost_breakdown"] = r.get("cost_breakdown")
     return doc
 
 
@@ -163,6 +165,69 @@ async def admin_delete_product(product_id: str, admin: dict = Depends(require_ad
     if res.deleted_count == 0:
         raise HTTPException(status_code=404, detail="Produto não encontrado")
     return {"deleted": True}
+
+
+# ---------------- Legacy pricing system (projects + import) ----------------
+def _gen_code(name: str) -> str:
+    base = re.sub(r"[^A-Za-z0-9]+", "", (name or "").upper())[:8] or "PRJ"
+    return f"{base}-{uuid.uuid4().hex[:4].upper()}"
+
+
+@api_router.get("/admin/pricing/projects")
+async def admin_pricing_projects(admin: dict = Depends(require_admin)):
+    source = get_pricing_source()
+    projects = source.list_projects()
+    # mark which projects are already linked in the catalog
+    existing = await db.products.find({}, {"_id": 0, "pricing_ref": 1, "name": 1}).to_list(2000)
+    used = set()
+    for e in existing:
+        if e.get("pricing_ref"):
+            used.add(_norm(e["pricing_ref"]))
+        if e.get("name"):
+            used.add(_norm(e["name"]))
+    for p in projects:
+        p["in_catalog"] = p["key"] in used
+    return {"source": source.name, "enabled": source.name == "legacy", "projects": projects}
+
+
+@api_router.post("/admin/pricing/import")
+async def admin_pricing_import(admin: dict = Depends(require_admin)):
+    source = get_pricing_source()
+    if not isinstance(source, LegacyPricingSource):
+        raise HTTPException(status_code=400, detail="A integração de precificação não está ativa.")
+    projects = source.list_projects()
+    existing = await db.products.find({}, {"_id": 0, "pricing_ref": 1, "name": 1}).to_list(2000)
+    used = set()
+    for e in existing:
+        if e.get("pricing_ref"):
+            used.add(_norm(e["pricing_ref"]))
+        if e.get("name"):
+            used.add(_norm(e["name"]))
+
+    created = 0
+    for p in projects:
+        if p["key"] in used:
+            continue
+        materials = (p.get("cost_breakdown") or {}).get("materials") or []
+        material_name = materials[0]["name"] if materials else "PLA"
+        product = Product(
+            code=_gen_code(p["name"]),
+            name=p["name"],
+            description="",
+            category="",
+            material=material_name,
+            weight_grams=p.get("weight_grams"),
+            print_time_minutes=p.get("print_time_minutes"),
+            price_cents=p.get("price_cents"),
+            pricing_ref=p["key"],
+            status="draft",
+            available=True,
+        )
+        await db.products.insert_one(product.model_dump())
+        used.add(p["key"])
+        created += 1
+
+    return {"created": created, "available": len(projects), "skipped": len(projects) - created}
 
 
 # ---------------- Quotes ----------------
