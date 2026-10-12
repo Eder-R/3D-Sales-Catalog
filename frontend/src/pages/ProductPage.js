@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
-import { ArrowLeft, Scales, Clock, Cube, Ruler, Palette } from "@phosphor-icons/react";
+import { ArrowLeft, Scales, Clock, Cube, Ruler, Palette, Drop } from "@phosphor-icons/react";
 import { SiteLayout } from "@/components/SiteLayout";
 import { ProductImage } from "@/components/ProductImage";
 import { Button } from "@/components/ui/button";
@@ -130,6 +130,22 @@ export default function ProductPage() {
               <SpecRow icon={Ruler} label="Dimensões" value={product.dimensions || "—"} />
               <SpecRow icon={Palette} label="Variantes" value={product.colors?.length ? `${product.colors.length}` : "—"} />
             </div>
+
+            {product.materials_used?.length > 0 && (
+              <div className="mt-8" data-testid="materials-used">
+                <span className="overline-label">Materiais utilizados</span>
+                <div className="mt-3 border border-border/60">
+                  {product.materials_used.map((m, i) => (
+                    <div key={i} className="flex items-center justify-between border-b border-border/60 last:border-b-0 px-4 py-3">
+                      <span className="flex items-center gap-2.5 text-sm">
+                        <Drop size={17} weight="duotone" className="text-primary" /> {m.name}
+                      </span>
+                      <span className="text-sm font-medium font-mono">{m.grams} g</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <Button onClick={() => navigate("/orcamento")} size="lg" className="mt-9 w-full rounded-md" data-testid="product-quote-cta">
               Solicitar orçamento desta peça

@@ -46,7 +46,8 @@ MAX_IMAGE_BYTES = 8 * 1024 * 1024
 
 
 def _public_product(doc: dict) -> dict:
-    """Catalog-facing product: price/weight/time replaced by the resolved source values."""
+    """Catalog-facing product: price/weight/time replaced by the resolved source values.
+    Exposes material name + quantity used from the pricing system (never the internal cost)."""
     doc = {k: v for k, v in doc.items() if k != "_id"}
     r = get_pricing_source().resolve(doc)
     doc["price_cents"] = r["price_cents"]
@@ -54,6 +55,11 @@ def _public_product(doc: dict) -> dict:
     doc["weight_grams"] = r["weight_grams"]
     doc["print_time_minutes"] = r["print_time_minutes"]
     doc["specs_source"] = r["specs_source"]
+    cb = r.get("cost_breakdown") or {}
+    doc["materials_used"] = [
+        {"name": m.get("name"), "grams": m.get("grams")} for m in (cb.get("materials") or [])
+    ]
+    doc["material_source"] = r["specs_source"] if doc["materials_used"] else "admin"
     return doc
 
 
