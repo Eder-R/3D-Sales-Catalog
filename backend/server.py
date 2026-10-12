@@ -44,13 +44,29 @@ PUBLIC_PROJECTION = {"_id": 0}
 MAX_IMAGE_BYTES = 8 * 1024 * 1024
 
 
-def _apply_price(product: dict) -> dict:
-    source = get_pricing_source()
-    product = {k: v for k, v in product.items() if k != "_id"}
-    price_cents, origin = source.resolve(product)
-    product["price_cents"] = price_cents
-    product["price_source"] = origin
-    return product
+def _public_product(doc: dict) -> dict:
+    """Catalog-facing product: price/weight/time replaced by the resolved source values."""
+    doc = {k: v for k, v in doc.items() if k != "_id"}
+    r = get_pricing_source().resolve(doc)
+    doc["price_cents"] = r["price_cents"]
+    doc["price_source"] = r["price_source"]
+    doc["weight_grams"] = r["weight_grams"]
+    doc["print_time_minutes"] = r["print_time_minutes"]
+    doc["specs_source"] = r["specs_source"]
+    return doc
+
+
+def _admin_product(doc: dict) -> dict:
+    """Admin-facing product: keeps the manually stored values AND adds the resolved
+    (effective) values plus their source, so the UI can show 'Sistema' vs 'Manual'."""
+    doc = {k: v for k, v in doc.items() if k != "_id"}
+    r = get_pricing_source().resolve(doc)
+    doc["effective_price_cents"] = r["price_cents"]
+    doc["price_source"] = r["price_source"]
+    doc["effective_weight_grams"] = r["weight_grams"]
+    doc["effective_print_time_minutes"] = r["print_time_minutes"]
+    doc["specs_source"] = r["specs_source"]
+    return doc
 
 
 # ---------------- Auth ----------------
@@ -84,7 +100,7 @@ async def list_products(
             {"code": {"$regex": search, "$options": "i"}},
         ]
     docs = await db.products.find(query, PUBLIC_PROJECTION).to_list(1000)
-    docs = [_apply_price(d) for d in docs]
+    docs = [_public_product(d) for d in docs]
 
     sort_map = {
         "name_asc": lambda d: d.get("name", "").lower(),
@@ -109,14 +125,14 @@ async def get_product(product_id: str):
     doc = await db.products.find_one({"id": product_id, "status": "published"}, PUBLIC_PROJECTION)
     if not doc:
         raise HTTPException(status_code=404, detail="Produto não encontrado")
-    return _apply_price(doc)
+    return _public_product(doc)
 
 
 # ---------------- Admin products ----------------
 @api_router.get("/admin/products")
 async def admin_list_products(admin: dict = Depends(require_admin)):
     docs = await db.products.find({}, PUBLIC_PROJECTION).sort("created_at", -1).to_list(1000)
-    return docs
+    return [_admin_product(d) for d in docs]
 
 
 @api_router.post("/admin/products", response_model=Product)

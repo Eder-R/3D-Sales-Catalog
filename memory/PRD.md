@@ -31,7 +31,12 @@ sem duplicar regras. Sem pagamentos/frete/checkout/redes sociais nesta etapa.
 ## Implementado (2026-06)
 - Backend: auth JWT (/api/auth/login, /me), produtos público (list/search/filter/sort, categorias, detalhe),
   produtos admin (CRUD + status), orçamentos (create público, list/status admin), upload admin + upload
-  orçamento + serviço de arquivos, pricing gateway (AdminPricingSource ativo; LegacyPricingSource preparado).
+  orçamento + serviço de arquivos.
+- Integração de precificação ATIVA (PRICING_SOURCE=legacy, arquivo custos_3D.db): preço (projetos.preco_venda),
+  tempo (projetos.tempo_impressao_minutos) e peso (SUM projeto_materiais.peso_usado_g) vêm do sistema,
+  casando pelo NOME do produto com projetos.nome; fallback para valores manuais quando não há correspondência.
+  Admin exibe badge de fonte do preço: "Sistema" (legacy) ou "Manual" (admin).
+  Projetos disponíveis no banco: "Porta Vassouras", "Suporte Celular", "Grampo de Embalagem".
 - Frontend: Home (hero + destaques), Catálogo (busca/filtros/ordenação), Página de produto (galeria +
   specs + variantes), Orçamento (form + upload referência), Admin (login, lista de produtos com
   publicar/despublicar/arquivar/excluir, formulário completo, lista de orçamentos com mudança de status).

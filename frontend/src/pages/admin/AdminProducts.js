@@ -76,7 +76,17 @@ export default function AdminProducts() {
                     {!p.available && <span className="text-[10px] font-mono uppercase tracking-widest border border-destructive/40 text-destructive px-1.5 py-0.5">Indisponível</span>}
                   </div>
                   <h3 className="font-heading font-bold text-sm truncate mt-0.5">{p.name}</h3>
-                  <p className="text-xs text-muted-foreground mt-0.5">{p.category || "Sem categoria"} · {formatBRL(p.price_cents)}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-2 flex-wrap">
+                    <span>{p.category || "Sem categoria"}</span>
+                    <span>·</span>
+                    <span className="font-mono text-foreground">{formatBRL(p.effective_price_cents)}</span>
+                    <span
+                      data-testid={`price-source-${p.id}`}
+                      className={`text-[10px] font-mono uppercase tracking-widest border px-1.5 py-0.5 ${p.price_source === "legacy" ? "text-discreet border-discreet/40" : "text-muted-foreground border-border"}`}
+                    >
+                      {p.price_source === "legacy" ? "Sistema" : "Manual"}
+                    </span>
+                  </p>
                 </div>
                 <div className="flex items-center gap-1 shrink-0">
                   {p.status !== "published" ? (

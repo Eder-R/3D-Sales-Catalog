@@ -112,6 +112,15 @@ export default function AdminProductForm() {
         </Link>
         <h1 className="font-heading font-black text-3xl tracking-tight mb-8">{isEdit ? "Editar produto" : "Novo produto"}</h1>
 
+        {isEdit && form.specs_source === "legacy" && (
+          <div className="mb-6 border border-discreet/40 bg-discreet/5 px-4 py-3 text-sm" data-testid="legacy-match-banner">
+            <span className="font-mono text-xs uppercase tracking-widest text-discreet">Sistema de precificação</span>
+            <p className="mt-1 text-muted-foreground">
+              Este produto corresponde a um projeto no seu sistema. Preço{form.price_source === "legacy" ? "" : " (manual)"}, peso e tempo exibidos na loja vêm do sistema. Os campos abaixo são o valor manual de fallback.
+            </p>
+          </div>
+        )}
+
         <form onSubmit={save} className="space-y-6" data-testid="product-form">
           <div className="grid sm:grid-cols-2 gap-6">
             <div className="space-y-2">
@@ -138,7 +147,11 @@ export default function AdminProductForm() {
             <div className="space-y-2">
               <Label htmlFor="price">Preço de venda (R$)</Label>
               <Input id="price" value={form.price} onChange={set("price")} data-testid="field-price" className={fieldCls} placeholder="0,00" />
-              <p className="text-[11px] text-muted-foreground">Fonte de preço: administração.</p>
+              <p className="text-[11px] text-muted-foreground">
+                {isEdit && form.price_source === "legacy"
+                  ? "Preço atual vindo do sistema de precificação. Este campo é o fallback manual."
+                  : "Preço manual (administração). Usado quando não há correspondência no sistema."}
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="material">Material</Label>
