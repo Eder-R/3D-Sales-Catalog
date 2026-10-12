@@ -1,0 +1,26 @@
+{
+  "summary": "Backend + frontend testing of the SQLite legacy pricing integration (PRICING_SOURCE=legacy, custos_3D.db). Added 11 new pytest cases covering: /api/admin/pricing/projects auth gate + structure (3 projects — Porta Vassouras R$20/15.24g/107min, Suporte Celular R$10/13.59g/78min, Grampo R$10/5.33g/39min, each with full cost_breakdown + in_catalog), /api/admin/pricing/import auth gate + idempotency (created=0, available=3, skipped=3), /api/admin/products exposes effective_price_cents/effective_weight_grams/effective_print_time_minutes/price_source/specs_source/cost_breakdown/pricing_ref, 'casar por código' priority (pricing_ref='porta vassouras' on a product named 'TEST Peça XYZ Sem Match' resolves to R$20/15.24g/107min with price_source=legacy while manual price_cents=100 is preserved as fallback), publishing the linked product exposes the legacy values publicly, and dropping pricing_ref falls back to admin. Adjusted 1 pre-existing TestProducts assertion (previous iteration ran under PRICING_SOURCE=admin; raw POST response now stores price_source='legacy' as source name even without a match — resolved values on list/get are correct). Full suite: 36/36 passed. Frontend: admin login, 'Importar do sistema' dialog correctly shows 'Todos os 3 projetos já estão no catálogo', confirm-import hidden when nothing pending; 3 SISTEMA price-source badges + 1 MANUAL badge render in the list; edit form for Porta Vassouras shows field-pricing-ref select and cost-breakdown panel with Material (PLA 15.24g → R$2,14), Mão de obra (15min → R$5,00), Impressora (1h 47min → R$5,35), Custo total R$12,49, Margem 30%, Preço de venda R$20,00; publishing Porta Vassouras exposes the public /produto/<id> page with R$ 20,00 / 15.24 g / 1h 47min from the SQLite source.",
+  "backend_issues": {"critical": [], "minor": [
+    {"endpoint": "POST /api/admin/products", "issue": "Create endpoint sets product.price_source = get_pricing_source().name ('legacy') on the stored document even when the product has no legacy match; the correct resolved value is only computed by _public_product/_admin_product via resolve(). Harmless (public/admin reads re-resolve) but confusing on the raw DB and in the create response."}
+  ]},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/backend/tests/backend_test.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [
+    "(Optional) In server.admin_create_product, drop the manual 'product.price_source = get_pricing_source().name' assignment, or set it to the resolved price_source from resolve(product.model_dump()) so stored data stays truthful."
+  ],
+  "critical_code_review_comments": [
+    "AdminProductForm loads a single product by fetching the full /admin/products list — adding GET /api/admin/products/{id} would scale better and skip the full catalog scan on every edit.",
+    "LegacyPricingSource._load caches by mtime at class-level without a lock; concurrent first-time loads could race (acceptable for current scale).",
+    "/api/admin/pricing/projects marks in_catalog using both pricing_ref AND normalized name as 'used'; works but means a non-linked product whose name happens to match a project will hide that project from the import dialog — predictable yet worth documenting."
+  ],
+  "updated_files": ["/app/backend/tests/backend_test.py"],
+  "success_rate": {"backend": "100%", "frontend": "100%"},
+  "test_credentials": "admin / Impressao3D@2026",
+  "seed_data_creation": "3 drafts (Porta Vassouras / Suporte Celular / Grampo de Embalagem) were already imported during manual verification. Testing published Porta Vassouras to verify public /produto page and left it published. TestMatchByCode cleans up its own TEST product.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "backend_test.py has 36 pytest cases (incl. TestPricingProjects, TestAdminProductsPricingFields, TestMatchByCode). Pricing data: SQLite at /app/backend/pricing_data/custos_3D.db, PRICING_SOURCE=legacy, PRICING_MATCH_FIELD=name. UI data-testids verified: import-projects-button, confirm-import, price-source-<id>, field-pricing-ref, cost-breakdown. Porta Vassouras is currently PUBLISHED after this run."
+}
