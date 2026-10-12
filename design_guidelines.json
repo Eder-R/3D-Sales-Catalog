@@ -1,0 +1,119 @@
+{
+  "theme": "dark",
+  "project_context": "E-commerce (catalog/storefront) + Admin Dashboard for 3D Printing (PLA). Language: pt-BR. Currency: R$.",
+  "typography": {
+    "headings": "Chivo",
+    "body": "IBM Plex Sans",
+    "weights": {
+      "heading_hero": "font-black",
+      "heading_section": "font-bold",
+      "body": "font-normal",
+      "labels": "font-medium"
+    },
+    "hierarchy_rules": "Headings must use tracking-tight or tracking-tighter. Overlines/labels must be Uppercase + Tiny + tracking-[0.2em]. Line height tight (leading-none) for headers, loose (leading-relaxed) for body. Do not exceed text-6xl for hero.",
+    "forbidden_fonts": ["Inter (for headings)", "Roboto", "Open Sans", "Lato", "Space Grotesk (for dashboard)"]
+  },
+  "colors": {
+    "background_base": "#0A0B0F",
+    "surface_primary": "#12141A",
+    "surface_secondary": "#1A1D24",
+    "border_subtle": "#2A2E37",
+    "border_strong": "#3F4552",
+    "text_primary": "#F8FAFC",
+    "text_secondary": "#94A3B8",
+    "accent_primary": "#D97706",
+    "accent_hover": "#F59E0B",
+    "accent_discreet": "#38BDF8",
+    "status_error": "#EF4444",
+    "status_success": "#10B981",
+    "forbidden_colors": ["#1B93A4", "#7351B7", "Pure #000000", "Pure #808080"]
+  },
+  "visual_enhancers": {
+    "surfaces": "Grid Borders (The Technical Look). Expose the layout skeleton using border-collapse style layouts. Items should have border-r border-b border-border/40. No heavy drop shadows. Keep interfaces minimal and technical.",
+    "hover_states": "Explicit text color changes on hover. Surfaces slightly lift (-translate-y-1) with subtle border color lightening. Focus states must have higher contrast.",
+    "textures": "Add subtle grain/noise overlays (opacity 0.02 to 0.04) to large dark backgrounds to eliminate 'digital flatness'.",
+    "glassmorphism": "For sticky headers or floating navs: use bg-black/60 with backdrop-blur-xl and a 1px delicate inner stroke (border-white/10). DO NOT use completely transparent backgrounds over content."
+  },
+  "components": {
+    "buttons": "Sharp rectangular or slightly rounded (max rounded-md). 1px solid borders. Accent colors used VERY sparingly (only for primary 'Solicitar Orçamento' or 'Publicar' actions).",
+    "cards": "Go cardless or use dense, flat rectangular styles with subtle 1px borders and no shadow. Max 4px border-radius.",
+    "forms": "Use customized Shadcn components. Inputs should have deep dark backgrounds (bg-[#0A0B0F]), subtle borders. Never use native raw inputs.",
+    "tables": "Dense rows, technical font (IBM Plex Sans), subtle borders for the admin dashboard.",
+    "icons": "Use @phosphor-icons/react (Duotone or Regular) for a technical, high-end hardware aesthetic. Do NOT use emojis."
+  },
+  "grids_and_layouts": {
+    "homepage": "Bento Grid Protocol (Mode A). Asymmetric, visual tension. 1-8-12 column layouts with wide gaps (gap-8 to gap-12). Leave 'breathing room'.",
+    "catalog_and_dashboard": "High Density Grid (Mode B). grid-cols-1 md:grid-cols-3 lg:grid-cols-4 with tight gaps (gap-4). Every pixel utilized, h-full on children.",
+    "spacing": "Generous spacing philosophy. Use p-8, p-12, or p-16 for containers. Components with borders MUST have internal padding to prevent collision.",
+    "alignment": "Optical alignment over geometrical. Left-align dense content and forms. Avoid center-everything disease."
+  },
+  "motion": {
+    "interactions": "Micro-animations for feedback. Hover states, active/press states (scale-95).",
+    "transitions": "Use specific transition properties (e.g., transition-colors duration-200, transition-transform). NEVER use 'transition: all'.",
+    "loading": "Use minimalist skeleton loaders or subtle ASCII-style/technical spinners instead of generic circular ones."
+  },
+  "accessibility": {
+    "contrast": "Ensure APCA standards. Normal text min 4.5:1 ratio. Large text min 3:1.",
+    "focus": "Clear focus rings (focus:ring-2 focus:ring-accent_discreet focus:outline-none) on all interactive elements.",
+    "testing": "All interactive and key informational elements MUST include a 'data-testid' attribute (e.g., data-testid='product-card-1')."
+  },
+  "media": {
+    "image_urls": {
+      "hero_minimal_3d": {
+        "url": "https://images.unsplash.com/photo-1622737133809-d95047b9e673?crop=entropy&cs=srgb&fm=jpg&ixid=M3w3NTY2Njd8MHwxfHNlYXJjaHwxfHxnZW9tZXRyaWMlMjAzZCUyMG9iamVjdCUyMG1pbmltYWx8ZW58MHx8fHwxNzkxNzY3Mzk0fDA&ixlib=rb-4.1.0&q=85",
+        "description": "Floating geometric cubes and glowing spheres, minimal. Perfect for the homepage hero background.",
+        "category": "hero"
+      },
+      "catalog_pla_spool": {
+        "url": "https://images.unsplash.com/photo-1739169169463-450148af26ce?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjY2NzZ8MHwxfHNlYXJjaHwxfHwzZCUyMHByaW50ZXIlMjB3b3JraW5nJTIwZGFya3xlbnwwfHx8fDE3OTE3NjczOTR8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Spool of orange PLA on a 3D printer. Good for 'Material' section or category headers.",
+        "category": "category_header"
+      },
+      "admin_tech_bg": {
+        "url": "https://images.unsplash.com/photo-1625838144804-300f3907c110?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjAxODF8MHwxfHNlYXJjaHwxfHx0ZWNoJTIwd29ya3NwYWNlJTIwZGFya3xlbnwwfHx8fDE3OTE3NjczOTR8MA&ixlib=rb-4.1.0&q=85",
+        "description": "Dark tech workspace. Excellent for Admin login background.",
+        "category": "admin_login"
+      }
+    },
+    "style": "Hero images must have a max overlay opacity of bg-black/50 or bg-gradient-to-r from-black/80 to-transparent to ensure text contrast without killing the image. Images must not exceed 80vh on mobile."
+  },
+  "3d_libraries": {
+    "recommendation": "Use framer-motion for smooth UI transitions and image galleries. No heavy WebGL/Three.js required unless explicitly needed for 3D model viewing in the product page. If needed, use @react-three/fiber."
+  },
+  "instructions_to_main_agent": [
+    "Target environment uses .js files, NOT .tsx. All Shadcn components and custom React code must be written in standard Javascript/JSX (.js or .jsx).",
+    "Implement pt-BR localization across the entire application (e.g., 'Solicitar Orçamento', 'Catálogo', 'Página Inicial').",
+    "Format all prices using BRL format: R$ 0,00.",
+    "Build standard raw HTML/Tailwind structures for the Marketing/Homepage to allow asymmetrical layouts. Do not force Shadcn 'Card' components into the hero section.",
+    "Use customized Shadcn components heavily in the Admin Dashboard and Product forms.",
+    "Implement a visible navigation bar with Logo, links, and primary CTA. Navigation must not be fully transparent.",
+    "All forms must use customized Shadcn Input, Select, and Form components. Do not use native HTML inputs.",
+    "Never use generic placeholders for images; use the provided URLs or design elegant CSS-only fallback patterns.",
+    "Ensure the application strictly uses the dark theme logic as default and only mode.",
+    "For the file structure, configure tailwind.config.js with the custom color palette."
+  ],
+  "UNIVERSAL_GUIDELINES_FOR_MAIN_AGENT": [
+    "You tend to converge toward generic, 'on distribution' outputs. Avoid this: make creative, distinctive frontends that surprise and delight.",
+    "Dark colors look good when used independently without gradients. DO NOT use dark colors as gradients.",
+    "Don't make generic centered layouts, simplistic gradients, and uniform styling.",
+    "Create depth through layered design elements with z-index hierarchy.",
+    "Use glass-morphism effects with backdrop filters (12-24px blur) for floating elements.",
+    "You MUST NOT apply universal transition (e.g., transition: all). Add transitions for specific properties.",
+    "You MUST NOT center align the app container (.App { text-align: center; }).",
+    "Always use modern button styles like pill-shaped, or sharp button with interaction animations & color relevant to the app style.",
+    "NEVER use AI assistant Emoji characters like 🤖🧠💭💡🔮🎯 etc for icons.",
+    "Every interaction needs micro-animations - hover states, transitions, parallax effects, and entrance animations.",
+    "Use 2-3x more spacing than feels comfortable. Cramped designs look cheap.",
+    "Subtle grain textures, noise overlays, custom cursors, selection states, and loading animations: separates good from extraordinary.",
+    "Prioritize using pre-existing components from src/components/ui when applicable.",
+    "Use sonner for toasts, located in /app/src/components/ui/sonner.js."
+  ],
+  "GENERAL_UI_UX_DESIGN_GUIDELINES": [
+    "Maintain consistent layout structures using Grid and Flexbox. Grid items must be direct children of the grid container.",
+    "All interactive elements must be accessible via keyboard navigation.",
+    "Use visual hierarchy to guide users to the primary CTA (Quote Request / Orçamento).",
+    "Group related information visually in the product specs (material, weight, dimensions).",
+    "Provide clear empty states for the catalog when filters yield no results.",
+    "Ensure touch targets are large enough (min 44x44px) on mobile views."
+  ]
+}

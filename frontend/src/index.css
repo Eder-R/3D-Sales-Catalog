@@ -1,0 +1,76 @@
+@import url('https://fonts.googleapis.com/css2?family=Chivo:ital,wght@0,300;0,400;0,700;0,900;1,400&family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+    :root {
+        --background: 228 22% 5%;
+        --foreground: 210 40% 98%;
+        --card: 228 18% 9%;
+        --card-foreground: 210 40% 98%;
+        --popover: 228 18% 9%;
+        --popover-foreground: 210 40% 98%;
+        --primary: 32 95% 44%;
+        --primary-foreground: 228 22% 5%;
+        --secondary: 222 16% 12%;
+        --secondary-foreground: 210 40% 98%;
+        --muted: 222 16% 12%;
+        --muted-foreground: 215 20% 65%;
+        --accent: 222 16% 12%;
+        --accent-foreground: 210 40% 98%;
+        --discreet: 199 92% 60%;
+        --destructive: 0 84% 60%;
+        --destructive-foreground: 210 40% 98%;
+        --success: 160 84% 39%;
+        --border: 222 14% 19%;
+        --input: 222 14% 19%;
+        --ring: 199 92% 60%;
+        --chart-1: 32 95% 44%;
+        --chart-2: 199 92% 60%;
+        --chart-3: 160 84% 39%;
+        --chart-4: 280 65% 60%;
+        --chart-5: 340 75% 55%;
+        --radius: 0.25rem;
+    }
+}
+
+@layer base {
+    * {
+        @apply border-border;
+    }
+    html {
+        scroll-behavior: smooth;
+    }
+    body {
+        @apply bg-background text-foreground font-sans antialiased;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.035'/%3E%3C/svg%3E");
+    }
+    h1, h2, h3, h4 {
+        @apply font-heading tracking-tight;
+    }
+}
+
+@layer utilities {
+    .overline-label {
+        @apply font-mono text-xs uppercase tracking-[0.2em] text-muted-foreground;
+    }
+    .grain::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+        pointer-events: none;
+    }
+}
+
+::selection {
+    background: hsl(var(--primary) / 0.3);
+    color: hsl(var(--foreground));
+}
+
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: hsl(var(--background)); }
+::-webkit-scrollbar-thumb { background: hsl(var(--border)); border-radius: 0; }
+::-webkit-scrollbar-thumb:hover { background: hsl(var(--border-strong, var(--muted-foreground))); }
