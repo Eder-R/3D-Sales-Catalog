@@ -47,8 +47,9 @@ MAX_IMAGE_BYTES = 8 * 1024 * 1024
 def _apply_price(product: dict) -> dict:
     source = get_pricing_source()
     product = {k: v for k, v in product.items() if k != "_id"}
-    product["price_cents"] = source.resolve_price_cents(product)
-    product["price_source"] = source.name
+    price_cents, origin = source.resolve(product)
+    product["price_cents"] = price_cents
+    product["price_source"] = origin
     return product
 
 
