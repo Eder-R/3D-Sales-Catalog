@@ -37,6 +37,11 @@ sem duplicar regras. Sem pagamentos/frete/checkout/redes sociais nesta etapa.
   casando pelo NOME do produto com projetos.nome; fallback para valores manuais quando não há correspondência.
   Admin exibe badge de fonte do preço: "Sistema" (legacy) ou "Manual" (admin).
   Projetos disponíveis no banco: "Porta Vassouras", "Suporte Celular", "Grampo de Embalagem".
+- Importação de projetos: GET /api/admin/pricing/projects + POST /api/admin/pricing/import (idempotente via pricing_ref)
+  criam produtos rascunho a partir dos projetos do sistema, já com preço/peso/tempo. Botão "Importar do sistema" no admin.
+- Vínculo explícito (casar por código): campo pricing_ref no produto (Select no formulário); prioridade de match pricing_ref > name > code.
+- Detalhe de custo: quebra (material, mão de obra, impressora, custo total, margem, preço de venda) calculada de
+  materiais/configuracoes/projeto_materiais e exibida no formulário admin.
 - Frontend: Home (hero + destaques), Catálogo (busca/filtros/ordenação), Página de produto (galeria +
   specs + variantes), Orçamento (form + upload referência), Admin (login, lista de produtos com
   publicar/despublicar/arquivar/excluir, formulário completo, lista de orçamentos com mudança de status).

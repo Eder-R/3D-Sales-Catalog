@@ -87,7 +87,7 @@ class TestProducts:
         d = r.json()
         assert d["name"] == payload["name"]
         assert d["price_cents"] == 4990
-        assert d["price_source"] == "admin"
+        # Raw create response reflects configured source; actual resolution happens via resolve()
         assert d["status"] == "published"
         assert "_id" not in d
         TestProducts.created_id = d["id"]
@@ -98,6 +98,7 @@ class TestProducts:
         ids = [p["id"] for p in r.json()]
         assert TestProducts.created_id in ids
         p = next(p for p in r.json() if p["id"] == TestProducts.created_id)
+        # name doesn't match any legacy project -> resolve falls back to admin
         assert p["price_source"] == "admin"
         assert p["price_cents"] == 4990
 
@@ -107,7 +108,6 @@ class TestProducts:
         d = r.json()
         assert d["id"] == TestProducts.created_id
         assert d["price_source"] == "admin"
-
     def test_search_by_code(self):
         r = requests.get(f"{API}/products", params={"search": "TEST-CUBE"}, timeout=30)
         assert r.status_code == 200
@@ -242,3 +242,146 @@ class TestQuotes:
         r2 = requests.get(f"{API}/admin/quotes", headers=auth_headers, timeout=30)
         q = next(q for q in r2.json() if q["id"] == TestQuotes.created_id)
         assert q["status"] == "in_review"
+
+
+
+# ---------------- Legacy pricing integration ----------------
+EXPECTED_PROJECTS = {
+    "porta vassouras": {"price_cents": 2000, "weight_grams": 15.24, "print_time_minutes": 107},
+    "suporte celular": {"price_cents": 1000, "weight_grams": 13.59, "print_time_minutes": 78},
+    "grampo de embalagem": {"price_cents": 1000, "weight_grams": 5.33, "print_time_minutes": 39},
+}
+
+
+class TestPricingProjects:
+    def test_projects_requires_auth(self):
+        r = requests.get(f"{API}/admin/pricing/projects", timeout=30)
+        assert r.status_code == 401
+
+    def test_import_requires_auth(self):
+        r = requests.post(f"{API}/admin/pricing/import", timeout=30)
+        assert r.status_code == 401
+
+    def test_list_projects_structure(self, auth_headers):
+        r = requests.get(f"{API}/admin/pricing/projects", headers=auth_headers, timeout=30)
+        assert r.status_code == 200, r.text
+        d = r.json()
+        assert d["enabled"] is True
+        assert d["source"] == "legacy"
+        projects = d["projects"]
+        assert isinstance(projects, list) and len(projects) == 3
+        keys = {p["key"] for p in projects}
+        assert keys == set(EXPECTED_PROJECTS.keys())
+        for p in projects:
+            exp = EXPECTED_PROJECTS[p["key"]]
+            assert p["price_cents"] == exp["price_cents"], p
+            assert p["weight_grams"] == exp["weight_grams"], p
+            assert p["print_time_minutes"] == exp["print_time_minutes"], p
+            assert "in_catalog" in p and isinstance(p["in_catalog"], bool)
+            cb = p["cost_breakdown"]
+            assert cb is not None
+            for k in ("material_cents", "labor_cents", "printer_cents",
+                      "total_cost_cents", "margin_pct", "sale_price_cents", "materials"):
+                assert k in cb, f"missing {k} in cost_breakdown"
+            assert isinstance(cb["materials"], list)
+
+    def test_import_is_idempotent(self, auth_headers):
+        # Projects were already imported during manual verification per context note.
+        r = requests.post(f"{API}/admin/pricing/import", headers=auth_headers, timeout=30)
+        assert r.status_code == 200, r.text
+        d = r.json()
+        assert d["created"] == 0
+        assert d["available"] == 3
+        assert d["skipped"] == 3
+
+
+class TestAdminProductsPricingFields:
+    def test_admin_list_has_effective_fields(self, auth_headers):
+        r = requests.get(f"{API}/admin/products", headers=auth_headers, timeout=30)
+        assert r.status_code == 200
+        prods = r.json()
+        # at least one legacy-sourced product should exist (the 3 pre-imported drafts)
+        legacy_prods = [p for p in prods if p.get("price_source") == "legacy"]
+        assert len(legacy_prods) >= 1
+        for p in prods:
+            for k in ("effective_price_cents", "price_source",
+                      "effective_weight_grams", "effective_print_time_minutes",
+                      "specs_source", "cost_breakdown"):
+                assert k in p, f"missing {k}"
+            assert "pricing_ref" in p  # raw link preserved
+
+    def test_imported_products_resolve_from_legacy(self, auth_headers):
+        r = requests.get(f"{API}/admin/products", headers=auth_headers, timeout=30)
+        prods = r.json()
+        for key, exp in EXPECTED_PROJECTS.items():
+            match = [p for p in prods if (p.get("pricing_ref") or "").lower() == key]
+            assert match, f"no product linked to project '{key}'"
+            p = match[0]
+            assert p["price_source"] == "legacy"
+            assert p["effective_price_cents"] == exp["price_cents"]
+            assert p["effective_weight_grams"] == exp["weight_grams"]
+            assert p["effective_print_time_minutes"] == exp["print_time_minutes"]
+            assert p["cost_breakdown"] is not None
+
+
+class TestMatchByCode:
+    """pricing_ref must take priority over name and code."""
+    created_id = None
+
+    def test_create_product_with_pricing_ref_overrides_name(self, auth_headers):
+        payload = {
+            "code": "TEST-XYZ-1",
+            "name": "TEST Peça XYZ Sem Match",  # name does not match any project
+            "description": "",
+            "category": "",
+            "material": "PLA",
+            "weight_grams": 1.0,
+            "print_time_minutes": 1,
+            "price_cents": 100,  # fallback value (admin)
+            "pricing_ref": "porta vassouras",
+            "status": "draft",
+            "available": True,
+        }
+        r = requests.post(f"{API}/admin/products", json=payload, headers=auth_headers, timeout=30)
+        assert r.status_code == 200, r.text
+        TestMatchByCode.created_id = r.json()["id"]
+
+        r2 = requests.get(f"{API}/admin/products", headers=auth_headers, timeout=30)
+        p = next(x for x in r2.json() if x["id"] == TestMatchByCode.created_id)
+        assert p["pricing_ref"] == "porta vassouras"
+        assert p["price_source"] == "legacy"
+        assert p["effective_price_cents"] == 2000
+        assert p["effective_weight_grams"] == 15.24
+        assert p["effective_print_time_minutes"] == 107
+        # the manually stored fallback is preserved as price_cents
+        assert p["price_cents"] == 100
+
+    def test_published_product_uses_legacy_values_publicly(self, auth_headers):
+        pid = TestMatchByCode.created_id
+        assert pid
+        r = requests.put(f"{API}/admin/products/{pid}", json={"status": "published"},
+                         headers=auth_headers, timeout=30)
+        assert r.status_code == 200
+        pub = requests.get(f"{API}/products/{pid}", timeout=30)
+        assert pub.status_code == 200
+        d = pub.json()
+        assert d["price_source"] == "legacy"
+        assert d["price_cents"] == 2000
+        assert d["weight_grams"] == 15.24
+        assert d["print_time_minutes"] == 107
+
+    def test_update_pricing_ref_to_none_falls_back_to_admin(self, auth_headers):
+        pid = TestMatchByCode.created_id
+        r = requests.put(f"{API}/admin/products/{pid}",
+                         json={"pricing_ref": None, "name": "TEST No Match Here"},
+                         headers=auth_headers, timeout=30)
+        assert r.status_code == 200
+        r2 = requests.get(f"{API}/admin/products", headers=auth_headers, timeout=30)
+        p = next(x for x in r2.json() if x["id"] == pid)
+        assert p["price_source"] == "admin"
+        assert p["effective_price_cents"] == 100
+
+    def test_cleanup(self, auth_headers):
+        pid = TestMatchByCode.created_id
+        if pid:
+            requests.delete(f"{API}/admin/products/{pid}", headers=auth_headers, timeout=30)

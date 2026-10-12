@@ -140,7 +140,6 @@ async def admin_list_products(admin: dict = Depends(require_admin)):
 @api_router.post("/admin/products", response_model=Product)
 async def admin_create_product(payload: ProductCreate, admin: dict = Depends(require_admin)):
     product = Product(**payload.model_dump())
-    product.price_source = get_pricing_source().name
     await db.products.insert_one(product.model_dump())
     return product
 
